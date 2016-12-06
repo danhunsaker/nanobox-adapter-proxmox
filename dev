@@ -1,0 +1,7 @@
+#!/bin/bash -e
+
+php artisan migrate
+[ -e /data/etc/php.d/xdebug.ini ] || ln -s /app/xdebug.ini /data/etc/php.d/
+php artisan queue:work --queue=default --daemon --tries=5 &
+php-server
+jobs -x kill %+

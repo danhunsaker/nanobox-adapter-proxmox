@@ -1,12 +1,12 @@
 # nanobox-provider-proxmox [![Build Status Image](https://travis-ci.org/danhunsaker/nanobox-provider-proxmox.svg)](https://travis-ci.org/danhunsaker/nanobox-provider-proxmox)
 
-Nanobox provider for Proxmox hosts
+Provider for deploying Nanobox apps to Proxmox clusters.
 
 ## Usage
 
 This app is designed for use with Nanobox, both in development, and for
 deployment of both itself and other apps.  You must have Nanobox installed
-locally to use this app.  In development, `nanobox run dev` will start a local
+locally to use this app.  In development, `nanobox run ./dev` will start a local
 server.  `nanobox deploy dry-run` will deploy a test server, to ensure
 everything is working properly before final deployment, using `nanobox deploy`.
 

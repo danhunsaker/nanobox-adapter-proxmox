@@ -1,15 +1,11 @@
 .DS_Store
-*.bak
-*.log
 /.composer
 /.env
-/.env.*.php
-/.env.php
+/.git
+/.gitignore
 /.idea
-/bootstrap/compiled.php
 /Homestead.json
 /Homestead.yaml
 /node_modules
-/storage/*.key
 /storage/app/public
 /vendor

@@ -1,0 +1,115 @@
+run.config:
+  # tells nanobox to install php and associated runtimes
+  engine: php
+  engine.config:
+    # sets the php version
+    # you can use a different version if you prefer
+    runtime: php-7.0
+
+    # specifies the webserver document_root
+    document_root: public
+
+    # enables php extensions
+    extensions:
+      # required by app
+      - pdo_mysql
+      - redis
+
+      # required by laravel
+      - ctype
+      - dom
+      - mbstring
+      - pdo
+      - session
+      - tokenizer
+      - xml
+      - zip
+
+      # # auto-injected for composer
+      # - filter
+      # - hash
+      # - json
+      # - phar
+
+    dev_zend_extensions:
+      add:
+        - xdebug
+
+  # Includes the Node.js package in your runtime
+  extra_packages:
+    - nodejs
+    - newrelic
+
+  # Tells nanobox to cache & reuse the node_modules and vendor directories
+  cache_dirs:
+    - node_modules
+    - vendor
+
+  # Adds binaries to the $PATH
+  extra_path_dirs:
+    - node_modules/.bin
+    - vendor/bin
+
+  fs_watch: true
+
+  # Runs npm in the final step of your build process
+  extra_steps:
+    - npm install
+
+deploy.config:
+  transform:
+    - cp .env.nanobox .env
+  before_live:
+    web.laravel:
+      - php artisan migrate -f
+  before_live_all:
+    web.laravel:
+      - mkdir -p storage/framework/{sessions,cache,views}
+    worker.laravel:
+      - mkdir -p storage/framework/{sessions,cache,views}
+
+# creates a web component in sim and production environments
+web.laravel:
+  # commands to start PHP-FPM and Apache
+  start: php-server
+
+  # pipes log output in your app's log-stream
+  log_watch:
+    web[laravel[apache[access]]]: /data/var/log/apache/access.log
+    web[laravel[php[fpm]]]: /data/var/log/php/php_fpm.log
+    web[laravel[apache[error]]]: /data/var/log/apache/error.log
+    web[laravel[php[error]]]: /data/var/log/php/php_error.log
+    web[laravel[laravel[error]]]: /app/storage/logs/laravel.log
+
+  network_dirs:
+    data.storage:
+      - storage/app
+
+  writable_dirs:
+    - storage/framework
+    - bootstrap/cache
+
+worker.laravel:
+  start: php artisan queue:work --queue=default --daemon --tries=5
+
+  # pipes log output in your app's log-stream
+  log_watch:
+    worker[laravel[php[error]]]: /data/var/log/php/php_error.log
+    worker[laravel[laravel[error]]]: /app/storage/logs/laravel.log
+
+  network_dirs:
+    data.storage:
+      - storage/app
+
+  writable_dirs:
+    - storage/framework
+    - bootstrap/cache
+
+data.mysql:
+  image: nanobox/mysql:5.6
+
+data.redis:
+  image: nanobox/redis:3.0
+
+data.storage:
+  image: nanobox/unfs:0.9
