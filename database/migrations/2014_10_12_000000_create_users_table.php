@@ -12,11 +12,14 @@ class CreateUsersTable extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->increments('id');
-            $table->string('name');
-            $table->string('email')->unique();
+            $table->string('host');
+            $table->string('user');
+            $table->string('realm');
             $table->string('password');
-            $table->rememberToken();
             $table->timestamps();
+            $table->softDeletes();
+
+            $table->unique(['host', 'user', 'realm']);
         });
     }
 
@@ -25,6 +28,10 @@ class CreateUsersTable extends Migration
      */
     public function down()
     {
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropUnique(['host', 'user', 'realm']);
+        });
+
         Schema::drop('users');
     }
 }

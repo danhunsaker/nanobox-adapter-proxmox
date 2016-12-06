@@ -9,23 +9,24 @@ use Illuminate\Foundation\Validation\ValidatesRequests;
 use Illuminate\Routing\Controller as BaseController;
 
 /**
- * @SWG\Swagger(
- *   basePath="/api/v1",
- *   @SWG\Info(
- *     title="Nanobox Provider: Proxmox",
- *     description="A provider for deploying Nanobox apps to Proxmox clusters.",
- *     @SWG\Contact(
- *       name="Dan Hunsaker",
- *       email="danhunsaker@gmail.com",
- *     ),
- *     @SWG\License(
- *       name="MIT",
- *     ),
- *     version="1.0.0",
- *   ),
- *   consumes={"application/json"},
- *   produces={"application/json"},
- * )
+ *  @SWG\Swagger(
+ *      basePath="/api/v1",
+ *      @SWG\Info(
+ *          title="Nanobox Provider: Proxmox",
+ *          description="A provider for deploying Nanobox apps to Proxmox clusters.",
+ *          @SWG\Contact(
+ *              name="Dan Hunsaker",
+ *              email="danhunsaker@gmail.com",
+ *          ),
+ *          @SWG\License(
+ *              name="MIT",
+ *              url="http://choosealicense.com/licenses/mit/"
+ *          ),
+ *          version="1.0.0",
+ *      ),
+ *      consumes={"application/json"},
+ *      produces={"application/json"},
+ *  )
  */
 class Controller extends BaseController
 {

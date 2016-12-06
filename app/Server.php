@@ -3,20 +3,27 @@
 namespace App;
 
 use Crypt;
-use Illuminate\Contracts\Encryption\DecryptException;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Foundation\Auth\User as Authenticatable;
 
-class User extends Authenticatable
+class Server extends Model
 {
     use SoftDeletes;
+
+    /**
+     * The attributes that should be mutated to dates.
+     *
+     * @var array
+     */
+    protected $dates = ['deleted_at'];
+
     /**
      * The attributes that are mass assignable.
      *
      * @var array
      */
     protected $fillable = [
-        'host', 'user', 'realm', 'password',
+        'name',
     ];
 
     /**
@@ -28,15 +35,29 @@ class User extends Authenticatable
         'password',
     ];
 
-    public function keys()
+    // Relationships
+
+    public function region()
     {
-        return $this->hasMany(Key::class);
+        return $this->belongsTo(Region::class);
     }
 
-    public function servers()
+    public function serverSize()
     {
-        return $this->hasMany(Server::class);
+        return $this->belongsTo(ServerSize::class);
     }
+
+    public function key()
+    {
+        return $this->belongsTo(Key::class);
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    // Getters / Mutators
 
     public function getPasswordAttribute($value)
     {
