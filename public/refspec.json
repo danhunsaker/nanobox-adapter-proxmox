@@ -1,0 +1,574 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "title": "Nanobox Provider: [Name]",
+        "description": "A provider for deploying Nanobox apps to [cloud].",
+        "contact": {
+            "name": "[Your Name]",
+            "email": "you@example.com"
+        },
+        "license": {
+            "name": "MIT",
+            "url": "http://choosealicense.com/licenses/mit/"
+        },
+        "version": "1.0.0"
+    },
+    "basePath": "/[api/v1]",
+    "consumes": [
+        "application/json"
+    ],
+    "produces": [
+        "application/json"
+    ],
+    "paths": {
+        "/meta": {
+            "get": {
+                "tags": [
+                    "meta"
+                ],
+                "summary": "Gathering Metadata",
+                "description": "The `/meta` route is used to provide Nanobox with various pieces of metadata that will be used for displaying information in the dashboard and for requesting authentication information from the users.",
+                "responses": {
+                    "200": {
+                        "description": "successful operation",
+                        "schema": {
+                            "required": [
+                                "id",
+                                "name",
+                                "server_nickname",
+                                "default_region",
+                                "default_size",
+                                "can_reboot",
+                                "can_rename",
+                                "credential_fields"
+                            ],
+                            "properties": {
+                                "id": {
+                                    "description": "some unique identifier",
+                                    "type": "string"
+                                },
+                                "name": {
+                                    "description": "display name used in the dashboard",
+                                    "type": "string"
+                                },
+                                "server_nickname": {
+                                    "description": "what this provider calls their servers",
+                                    "type": "string"
+                                },
+                                "default_region": {
+                                    "description": "the default region to launch servers when not specified",
+                                    "type": "string"
+                                },
+                                "default_size": {
+                                    "description": "default server size to use when creating an app",
+                                    "type": "string"
+                                },
+                                "can_reboot": {
+                                    "description": "boolean to determine if we can reboot the server through the api",
+                                    "type": "boolean"
+                                },
+                                "can_rename": {
+                                    "description": "boolean to determine if we can rename the server through the api",
+                                    "type": "boolean"
+                                },
+                                "ssh_auth_method": {
+                                    "description": "will either be key or password",
+                                    "type": "string",
+                                    "enum": [
+                                        "key",
+                                        "password"
+                                    ]
+                                },
+                                "credential_fields": {
+                                    "description": "array of field names that will be submitted with each server action used to validate the user account",
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                }
+                            },
+                            "type": "object"
+                        }
+                    }
+                }
+            }
+        },
+        "/catalog": {
+            "get": {
+                "tags": [
+                    "meta"
+                ],
+                "summary": "Requesting the Catalog",
+                "description": "The `/catalog` route is used to provide nanobox with a catalog of server sizes and options, within the available geographic regions.",
+                "responses": {
+                    "200": {
+                        "description": "The response data should be a list (array) of regions. Each region should contain a list of plans. It is not necessary to have multiple regions, however the structure will be the same regardless. Additionally, your integration may only have one classification of server types, or you may have high-cpu, high-ram, or high-IO options. A plan is a grouping of server sizes within a classification.",
+                        "schema": {
+                            "description": "Each region in the catalog consists of the following",
+                            "type": "array",
+                            "items": {
+                                "required": [
+                                    "id",
+                                    "name",
+                                    "plans"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "description": "unique region identifier to be used when ordering a server",
+                                        "type": "string"
+                                    },
+                                    "name": {
+                                        "description": "the visual identifier for the customer",
+                                        "type": "string"
+                                    },
+                                    "plans": {
+                                        "description": "A grouping of server sizes within a classification. Each plan consists of the following",
+                                        "type": "array",
+                                        "items": {
+                                            "required": [
+                                                "title",
+                                                "specs"
+                                            ],
+                                            "properties": {
+                                                "title": {
+                                                    "description": "the classification of the server options within this plan. The title should indicate to the user what kinds of workloads these server options are ideal for. For instance: \"Standard\" or \"High CPU\"",
+                                                    "type": "string"
+                                                },
+                                                "specs": {
+                                                    "description": "the list of server options within this plan. Each spec should have the following fields",
+                                                    "type": "array",
+                                                    "items": {
+                                                        "required": [
+                                                            "id",
+                                                            "ram",
+                                                            "cpu",
+                                                            "disk",
+                                                            "transfer",
+                                                            "dollars_per_hr",
+                                                            "dollars_per_mo"
+                                                        ],
+                                                        "properties": {
+                                                            "id": {
+                                                                "description": "a unique identifier that will be used when ordering a server",
+                                                                "type": "string"
+                                                            },
+                                                            "ram": {
+                                                                "description": "a visual indication to the user informing the amount of RAM is provided",
+                                                                "type": "integer"
+                                                            },
+                                                            "cpu": {
+                                                                "description": "a visual indication to the user informing the amount of CPUs or CPU cores",
+                                                                "type": "integer"
+                                                            },
+                                                            "disk": {
+                                                                "description": "a visual indication to the user informing the amount or size of disk",
+                                                                "type": "integer"
+                                                            },
+                                                            "transfer": {
+                                                                "description": "a visual indication to the user informing the amount of data transfer allowed per month for this server",
+                                                                "type": "integer"
+                                                            },
+                                                            "dollars_per_hr": {
+                                                                "description": "a visual indication to the user informing the cost of running this server per hour",
+                                                                "type": "number",
+                                                                "format": "currency"
+                                                            },
+                                                            "dollars_per_mo": {
+                                                                "description": "a visual indication to the user informing the cost of running this server per month",
+                                                                "type": "number",
+                                                                "format": "currency"
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    }
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/verify": {
+            "post": {
+                "tags": [
+                    "meta"
+                ],
+                "summary": "Verify the account credentials",
+                "description": "The `/verify` route is used to verify a user's account credentials. The `credential_fields` specified in the metadata will be provided in the dashboard and required to be filled before the user can use this provider. After the credentials are provided, nanobox will call this route to verify that the account credentials provided by the user are valid.",
+                "parameters": [
+                    {
+                        "$ref": "#/parameters/Auth-Token"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "successful operation"
+                    },
+                    "default": {
+                        "$ref": "#/responses/default"
+                    }
+                }
+            }
+        },
+        "/keys": {
+            "post": {
+                "tags": [
+                    "meta"
+                ],
+                "summary": "Adding SSH Keys",
+                "description": "<p>The `/keys` route is used to authorize nanobox with the user's account that will be ordering servers. After ordering a server, nanobox will need to SSH into the server to provision it. Nanobox will pre-generate an SSH key for the user's account and the authorization route allows nanobox to register this key with the user's account on this provider so that nanobox can access the server after it is ordered.</p> <p>NOTE: This route is not required if your provider uses passwords for SSH instead of SSH keys, assuming the password to access the server is returned in the order server payload.</p>",
+                "parameters": [
+                    {
+                        "$ref": "#/parameters/Auth-Token"
+                    },
+                    {
+                        "name": "payload",
+                        "in": "body",
+                        "description": "Key ID and contents to save",
+                        "required": true,
+                        "schema": {
+                            "required": [
+                                "name",
+                                "key"
+                            ],
+                            "properties": {
+                                "name": {
+                                    "description": "the name of this key that will be used as an identifier when ordering a server",
+                                    "type": "string"
+                                },
+                                "key": {
+                                    "description": "The public key to register with the user's account. It is assumed that this public key will be installed on every server launched by this integration.",
+                                    "type": "string"
+                                }
+                            },
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "successful operation",
+                        "schema": {
+                            "required": [
+                                "id"
+                            ],
+                            "properties": {
+                                "id": {
+                                    "description": "fingerprint or key identifier to use when ordering servers",
+                                    "type": "string"
+                                }
+                            },
+                            "type": "object"
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/responses/default"
+                    }
+                }
+            }
+        },
+        "/servers": {
+            "post": {
+                "tags": [
+                    "servers"
+                ],
+                "summary": "Order Server",
+                "description": "The `/servers` route is how nanobox submits a request to order a new server. This route SHOULD NOT hold open the request until the server is ready. The request should return immediately once the order has been submitted with an identifier that nanobox can use to followup on the order status.",
+                "parameters": [
+                    {
+                        "$ref": "#/parameters/Auth-Token"
+                    },
+                    {
+                        "name": "payload",
+                        "in": "body",
+                        "description": "Server creation data",
+                        "required": true,
+                        "schema": {
+                            "required": [
+                                "name",
+                                "region",
+                                "size"
+                            ],
+                            "properties": {
+                                "name": {
+                                    "description": "nanobox-generated name used to identify the machine visually as ordered by nanobox",
+                                    "type": "string"
+                                },
+                                "region": {
+                                    "description": "the region wherein to launch the server, which will match the region `id` from the catalog",
+                                    "type": "string"
+                                },
+                                "size": {
+                                    "description": "the size of server to provision, which will match an `id` provided in the aforementioned catalog",
+                                    "type": "string"
+                                },
+                                "ssh_key": {
+                                    "description": "id of the SSH key created during the `/keys` request",
+                                    "type": "string"
+                                }
+                            },
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "successful operation",
+                        "schema": {
+                            "required": [
+                                "id"
+                            ],
+                            "properties": {
+                                "id": {
+                                    "description": "unique id of the server",
+                                    "type": "string"
+                                }
+                            },
+                            "type": "object"
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/responses/default"
+                    }
+                }
+            }
+        },
+        "/servers/{id}": {
+            "get": {
+                "tags": [
+                    "servers"
+                ],
+                "summary": "Query Server",
+                "description": "The `GET /servers/{id}` route is used by nanobox to query state about a previously ordered server. This state is used to inform nanobox when the server is ready to be provisioned and also how to connect to the server.",
+                "parameters": [
+                    {
+                        "$ref": "#/parameters/Auth-Token"
+                    },
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "the server id",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "successful operation",
+                        "schema": {
+                            "required": [
+                                "id",
+                                "status",
+                                "name",
+                                "external_ip",
+                                "internal_ip"
+                            ],
+                            "properties": {
+                                "id": {
+                                    "description": "the server id",
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "description": "the status or availability of the server. (active indicates server is ready)",
+                                    "type": "string"
+                                },
+                                "name": {
+                                    "description": "name of the server",
+                                    "type": "string"
+                                },
+                                "external_ip": {
+                                    "description": "external or public IP of the server",
+                                    "type": "string"
+                                },
+                                "internal_ip": {
+                                    "description": "internal or private IP of the server",
+                                    "type": "string"
+                                },
+                                "password": {
+                                    "description": "the ssh password to use (if ssh_auth_method is password)",
+                                    "type": "string"
+                                }
+                            },
+                            "type": "object"
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/responses/default"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "servers"
+                ],
+                "summary": "Cancel Server",
+                "description": "The `DELETE /servers/{id}` route is used to cancel a server that was previously ordered via nanobox. This route SHOULD NOT hold open the request until the server is completely canceled. It should return immediately once the order to cancel has been submitted.",
+                "parameters": [
+                    {
+                        "$ref": "#/parameters/Auth-Token"
+                    },
+                    {
+                        "name": "payload",
+                        "in": "body",
+                        "description": "Server ID",
+                        "required": true,
+                        "schema": {
+                            "properties": {
+                                "id": {
+                                    "description": "the server id (added here as a convenience)",
+                                    "type": "string"
+                                }
+                            },
+                            "type": "object"
+                        }
+                    },
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "the server id",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "successful operation"
+                    },
+                    "default": {
+                        "$ref": "#/responses/default"
+                    }
+                }
+            }
+        },
+        "/servers/{id}/reboot": {
+            "patch": {
+                "tags": [
+                    "servers"
+                ],
+                "summary": "Reboot Server",
+                "description": "The `/servers/{id}/reboot` route is used to reboot a server that was previously ordered via nanobox. This route SHOULD NOT hold open the request until the server is completely rebooted. It should return immediately once the order to reboot has been submitted",
+                "parameters": [
+                    {
+                        "$ref": "#/parameters/Auth-Token"
+                    },
+                    {
+                        "name": "payload",
+                        "in": "body",
+                        "description": "Server ID",
+                        "required": true,
+                        "schema": {
+                            "properties": {
+                                "id": {
+                                    "description": "the server id (added here as a convenience)",
+                                    "type": "string"
+                                }
+                            },
+                            "type": "object"
+                        }
+                    },
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "the server id",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "successful operation"
+                    },
+                    "default": {
+                        "$ref": "#/responses/default"
+                    }
+                }
+            }
+        },
+        "/servers/{id}/rename": {
+            "patch": {
+                "tags": [
+                    "servers"
+                ],
+                "summary": "Rename Server",
+                "description": "The `/servers/{id}/rename` route is used to rename a server that was previously ordered via nanobox. This route SHOULD NOT hold open the request until the server is completely renamed. It should return immediately once the order to rename has been submitted.",
+                "parameters": [
+                    {
+                        "$ref": "#/parameters/Auth-Token"
+                    },
+                    {
+                        "name": "payload",
+                        "in": "body",
+                        "description": "Server ID and new name",
+                        "required": true,
+                        "schema": {
+                            "required": [
+                                "name"
+                            ],
+                            "properties": {
+                                "id": {
+                                    "description": "the server id (added here as a convenience)",
+                                    "type": "string"
+                                },
+                                "name": {
+                                    "description": "the new name of the server",
+                                    "type": "string"
+                                }
+                            },
+                            "type": "object"
+                        }
+                    },
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "the server id",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "successful operation"
+                    },
+                    "default": {
+                        "$ref": "#/responses/default"
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {},
+    "parameters": {
+        "Auth-Token": {
+            "name": "Auth-Token",
+            "in": "header",
+            "required": true,
+            "type": "string"
+        }
+    },
+    "responses": {
+        "default": {
+            "description": "Error",
+            "schema": {
+                "required": [
+                    "errors"
+                ],
+                "properties": {
+                    "errors": {
+                        "description": "On Failure: Should return a json body with an errors node and a non 2xx status code.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "type": "object"
+            }
+        }
+    }
+}
