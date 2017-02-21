@@ -14,6 +14,7 @@ run.config:
       # required by app
       - curl
       - gmp
+      - libsodium
       - mcrypt
       - pdo_mysql
       - redis
@@ -68,7 +69,7 @@ deploy.config:
     - cp .env.nanobox .env
   before_live:
     web.laravel:
-      - php artisan migrate -f
+      - php artisan migrate --force
   before_live_all:
     web.laravel:
       - mkdir -p storage/framework/{sessions,cache,views}
