@@ -44,6 +44,23 @@ class Handler extends ExceptionHandler
      * @param \Exception               $e
      *
      * @return \Illuminate\Http\Response
+     *
+     *  @SWG\Response(
+     *      response="default",
+     *      description="Error",
+     *      @SWG\Schema(
+     *          type="object",
+     *          required={"errors"},
+     *          @SWG\Property(
+     *              property="errors",
+     *              description="On Failure: Should return a json body with an errors node and a non 2xx status code.",
+     *              type="array",
+     *              @SWG\Items(
+     *                  type="string",
+     *              ),
+     *          ),
+     *      ),
+     *  ),
      */
     public function render($request, Exception $e)
     {

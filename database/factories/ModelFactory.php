@@ -13,8 +13,8 @@
 
 $factory->define(App\User::class, function (Faker\Generator $faker) {
     return [
-        'host'     => $faker->domainName,
-        'user'     => $faker->userName,
+        'hostname' => $faker->domainName,
+        'username' => $faker->userName,
         'realm'    => $faker->randomElement(['pam', 'pve', $faker->domainName]),
         'password' => $faker->password,
     ];
@@ -27,6 +27,8 @@ $factory->define(App\Server::class, function (Faker\Generator $faker) {
         'name'           => $faker->domainName,
         'region_id'      => 1,
         'server_size_id' => 1,
+        'node'           => 'pve',
+        'storage'        => 'local-lvm',
         'vmid'           => $faker->numberBetween(100, 999),
         'key_id'         => null,
         'password'       => $faker->password,

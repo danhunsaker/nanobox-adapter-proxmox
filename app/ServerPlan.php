@@ -27,11 +27,11 @@ class ServerPlan extends Model
 
     public function regions()
     {
-        return $this->belongsToMany(Region::class);
+        return $this->belongsToMany(Region::class)->withTimestamps();
     }
 
     public function serverSizes()
     {
-        return $this->belongsToMany(ServerSize::class);
+        return $this->belongsToMany(ServerSize::class)->withTimestamps();
     }
 }

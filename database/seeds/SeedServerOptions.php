@@ -15,10 +15,10 @@ class SeedServerOptions extends Seeder
         $region = Region::create(['code' => 'own', 'name' => 'Self-Owned/Operated']);
 
         $plans = [
-            '1c'  => ServerPlan::create(['title' => 'Single Core']),
-            '2c'  => ServerPlan::create(['title' => 'Dual Core']),
-            '4c'  => ServerPlan::create(['title' => 'Quad Core']),
-            '4c+' => ServerPlan::create(['title' => 'Quad Core High Capacity']),
+            '1c'  => ServerPlan::create(['code' => '1c', 'name' => 'Single Core']),
+            '2c'  => ServerPlan::create(['code' => '2c', 'name' => 'Dual Core']),
+            '4c'  => ServerPlan::create(['code' => '4c', 'name' => 'Quad Core']),
+            '4c+' => ServerPlan::create(['code' => '4c+', 'name' => 'Quad Core High Capacity']),
         ];
 
         foreach ($plans as $plan) {

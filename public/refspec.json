@@ -1,8 +1,8 @@
 {
     "swagger": "2.0",
     "info": {
-        "title": "Nanobox Provider: [Name]",
-        "description": "A provider for deploying Nanobox apps to [cloud].",
+        "title": "Nanobox Adapter: [Name]",
+        "description": "An adapter for deploying Nanobox apps to [cloud].",
         "contact": {
             "name": "[Your Name]",
             "email": "you@example.com"
@@ -13,6 +13,10 @@
         },
         "version": "1.0.0"
     },
+    "externalDocs": {
+        "description": "Official documentation here",
+        "url": "https://docs.nanobox.io/providers/create/"
+    },
     "basePath": "/[api/v1]",
     "consumes": [
         "application/json"
@@ -21,6 +25,168 @@
         "application/json"
     ],
     "paths": {
+        "/keys": {
+            "post": {
+                "tags": [
+                    "keys"
+                ],
+                "summary": "Create SSH Key",
+                "description": "<p>The `/keys` route is used to authorize Nanobox with the user's account that will be ordering servers. After ordering a server, Nanobox needs to SSH into the server to provision it. Nanobox will pre-generate an SSH key for the user's account and the authorization route allows Nanobox to register this key with the user's account on this provider so that Nanobox can access the server after it is ordered.</p> <p>NOTE: This route is *not* required if your provider uses passwords for SSH instead of SSH keys, assuming the password to access the server is returned in the order server payload.</p>",
+                "externalDocs": {
+                    "description": "Official documentation here",
+                    "url": "https://docs.nanobox.io/providers/create/#create-ssh-key"
+                },
+                "operationId": "create-ssh-key",
+                "parameters": [
+                    {
+                        "$ref": "#/parameters/Auth-Token"
+                    },
+                    {
+                        "name": "payload",
+                        "in": "body",
+                        "description": "Key ID and contents to save",
+                        "required": true,
+                        "schema": {
+                            "required": [
+                                "name",
+                                "key"
+                            ],
+                            "properties": {
+                                "name": {
+                                    "description": "the user-friendly name of the key",
+                                    "type": "string"
+                                },
+                                "key": {
+                                    "description": "The public key to register with the user's account. It is assumed that this public key will be installed on every server launched by this integration.",
+                                    "type": "string"
+                                }
+                            },
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "default": {
+                        "$ref": "#/responses/default"
+                    },
+                    "201": {
+                        "description": "successful operation",
+                        "examples": {
+                            "application/json": {
+                                "id": "provider-key-ID"
+                            }
+                        },
+                        "schema": {
+                            "required": [
+                                "id"
+                            ],
+                            "properties": {
+                                "id": {
+                                    "description": "fingerprint or key identifier to use when ordering servers",
+                                    "type": "string"
+                                }
+                            },
+                            "type": "object"
+                        }
+                    }
+                }
+            }
+        },
+        "/keys/{id}": {
+            "get": {
+                "tags": [
+                    "keys"
+                ],
+                "summary": "Query SSH Key",
+                "description": "<p>The `GET /keys/{id}` route is used by Nanobox to query the existence of previously created key.</p> <p>NOTE: This route is *not* required if your provider uses passwords for SSH instead of SSH keys, assuming the password to access the server is returned in the order server payload.</p>",
+                "externalDocs": {
+                    "description": "Official documentation here",
+                    "url": "https://docs.nanobox.io/providers/create/#query-ssh-key"
+                },
+                "operationId": "query-ssh-key",
+                "parameters": [
+                    {
+                        "$ref": "#/parameters/Auth-Token"
+                    },
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "the key id",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "default": {
+                        "$ref": "#/responses/default"
+                    },
+                    "201": {
+                        "description": "successful operation",
+                        "examples": {
+                            "application/json": {
+                                "id": "provider-key-ID",
+                                "name": "nanobox-provider-account-ID",
+                                "public_key": "CONTENTS OF PUBLIC KEY"
+                            }
+                        },
+                        "schema": {
+                            "required": [
+                                "id",
+                                "name",
+                                "public_key"
+                            ],
+                            "properties": {
+                                "id": {
+                                    "description": "fingerprint or key identifier to use when ordering servers",
+                                    "type": "string"
+                                },
+                                "name": {
+                                    "description": "the user-friendly name of the key",
+                                    "type": "string"
+                                },
+                                "public_key": {
+                                    "description": "contents of public key",
+                                    "type": "string"
+                                }
+                            },
+                            "type": "object"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "keys"
+                ],
+                "summary": "Delete SSH Key",
+                "description": "<p>The `DELETE /keys/{id}` route is used to cancel a key that was previously created via Nanobox.</p> <p>NOTE: This route is *not* required if your provider uses passwords for SSH instead of SSH keys, assuming the password to access the server is returned in the order server payload.</p>",
+                "externalDocs": {
+                    "description": "Official documentation here",
+                    "url": "https://docs.nanobox.io/providers/create/#delete-ssh-key"
+                },
+                "operationId": "delete-ssh-key",
+                "parameters": [
+                    {
+                        "$ref": "#/parameters/Auth-Token"
+                    },
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "the key id",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "default": {
+                        "$ref": "#/responses/default"
+                    },
+                    "200": {
+                        "description": "successful operation"
+                    }
+                }
+            }
+        },
         "/meta": {
             "get": {
                 "tags": [
@@ -28,14 +194,35 @@
                 ],
                 "summary": "Gathering Metadata",
                 "description": "The `/meta` route is used to provide Nanobox with various pieces of metadata that will be used for displaying information in the dashboard and for requesting authentication information from the users.",
+                "externalDocs": {
+                    "description": "Official documentation here",
+                    "url": "https://docs.nanobox.io/providers/create/#meta"
+                },
+                "operationId": "meta",
                 "responses": {
                     "200": {
                         "description": "successful operation",
+                        "examples": {
+                            "application/json": {
+                                "id":                "do",
+                                "name":              "Digital Ocean",
+                                "server_nick_name":  "Droplet",
+                                "default_region":    "sfo1",
+                                "default_size":      "512mb",
+                                "default_plan":      "standard",
+                                "can_reboot":        true,
+                                "can_rename":        true,
+                                "credential_fields": [
+                                    { "key": "access-token", "label": "Access Token" }
+                                ],
+                                "instructions": "<a href='//cloud.digitalocean.com/settings/api/tokens' target='_blank'>Create a Personal Access Token</a> in your Digital Ocean Account that has read/write access, then add the token here or view the <a href='//www.digitalocean.com/community/tutorials/how-to-use-the-digitalocean-api-v2#how-to-generate-a-personal-access-token' target='_blank'>full guide</a>"
+                            }
+                        },
                         "schema": {
                             "required": [
                                 "id",
                                 "name",
-                                "server_nickname",
+                                "server_nick_name",
                                 "default_region",
                                 "default_size",
                                 "can_reboot",
@@ -51,7 +238,7 @@
                                     "description": "display name used in the dashboard",
                                     "type": "string"
                                 },
-                                "server_nickname": {
+                                "server_nick_name": {
                                     "description": "what this provider calls their servers",
                                     "type": "string"
                                 },
@@ -61,6 +248,10 @@
                                 },
                                 "default_size": {
                                     "description": "default server size to use when creating an app",
+                                    "type": "string"
+                                },
+                                "default_plan": {
+                                    "description": "the id of the default plan in which the default size is ordered",
                                     "type": "string"
                                 },
                                 "can_reboot": {
@@ -80,11 +271,29 @@
                                     ]
                                 },
                                 "credential_fields": {
-                                    "description": "array of field names that will be submitted with each server action used to validate the user account",
+                                    "description": "array of hashes that includes field keys and labels necessary to authenticate with the provider",
                                     "type": "array",
                                     "items": {
-                                        "type": "string"
+                                        "required": [
+                                            "key",
+                                            "label"
+                                        ],
+                                        "properties": {
+                                            "key": {
+                                                "description": "suffix for Auth- headers used to identify each auth field",
+                                                "type": "string"
+                                            },
+                                            "label": {
+                                                "description": "text to display to the user for each auth field",
+                                                "type": "string"
+                                            }
+                                        },
+                                        "type": "object"
                                     }
+                                },
+                                "instructions": {
+                                    "description": "string that contains instructions for how to setup authentication with the provider",
+                                    "type": "string"
                                 }
                             },
                             "type": "object"
@@ -99,10 +308,33 @@
                     "meta"
                 ],
                 "summary": "Requesting the Catalog",
-                "description": "The `/catalog` route is used to provide nanobox with a catalog of server sizes and options, within the available geographic regions.",
+                "description": "The `/catalog` route is used to provide Nanobox with a catalog of server sizes and options, within the available geographic regions.",
+                "externalDocs": {
+                    "description": "Official documentation here",
+                    "url": "https://docs.nanobox.io/providers/create/#catalog"
+                },
+                "operationId": "catalog",
                 "responses": {
                     "200": {
                         "description": "The response data should be a list (array) of regions. Each region should contain a list of plans. It is not necessary to have multiple regions, however the structure will be the same regardless. Additionally, your integration may only have one classification of server types, or you may have high-cpu, high-ram, or high-IO options. A plan is a grouping of server sizes within a classification.",
+                        "examples": {
+                            "application/json": [
+                                {
+                                    "id":    "sfo1",
+                                    "name":  "San Francisco 1",
+                                    "plans": [
+                                        {
+                                            "id": "standard",
+                                            "name": "Standard Configuration",
+                                            "specs": [
+                                                {"id": "512mb", "ram": 512, "cpu": 1, "disk": 20, "transfer": 1.0, "dollars_per_hr": 0.00744, "dollars_per_mo": 5.0},
+                                                {"id": "1gb", "ram": 1024, "cpu": 1, "disk": 30, "transfer": 2.0, "dollars_per_hr": 0.01488, "dollars_per_mo": 10.0}
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
                         "schema": {
                             "description": "Each region in the catalog consists of the following",
                             "type": "array",
@@ -126,12 +358,17 @@
                                         "type": "array",
                                         "items": {
                                             "required": [
-                                                "title",
+                                                "id",
+                                                "name",
                                                 "specs"
                                             ],
                                             "properties": {
-                                                "title": {
-                                                    "description": "the classification of the server options within this plan. The title should indicate to the user what kinds of workloads these server options are ideal for. For instance: \"Standard\" or \"High CPU\"",
+                                                "id": {
+                                                    "description": "unique plan identifier",
+                                                    "type": "string"
+                                                },
+                                                "name": {
+                                                    "description": "the classification of the server options within this plan. The name should indicate to the user what kinds of workloads these server options are ideal for. For instance: \"Standard\" or \"High CPU\"",
                                                     "type": "string"
                                                 },
                                                 "specs": {
@@ -200,7 +437,12 @@
                     "meta"
                 ],
                 "summary": "Verify the account credentials",
-                "description": "The `/verify` route is used to verify a user's account credentials. The `credential_fields` specified in the metadata will be provided in the dashboard and required to be filled before the user can use this provider. After the credentials are provided, nanobox will call this route to verify that the account credentials provided by the user are valid.",
+                "description": "The `/verify` route is used to verify a user's account credentials. The `credential_fields` specified in the metadata will be provided in the dashboard and required to be filled before the user can use this provider. After the credentials are provided, Nanobox will call this route to verify that the account credentials provided by the user are valid.",
+                "externalDocs": {
+                    "description": "Official documentation here",
+                    "url": "https://docs.nanobox.io/providers/create/#verify"
+                },
+                "operationId": "verify",
                 "parameters": [
                     {
                         "$ref": "#/parameters/Auth-Token"
@@ -216,70 +458,18 @@
                 }
             }
         },
-        "/keys": {
-            "post": {
-                "tags": [
-                    "meta"
-                ],
-                "summary": "Adding SSH Keys",
-                "description": "<p>The `/keys` route is used to authorize nanobox with the user's account that will be ordering servers. After ordering a server, nanobox will need to SSH into the server to provision it. Nanobox will pre-generate an SSH key for the user's account and the authorization route allows nanobox to register this key with the user's account on this provider so that nanobox can access the server after it is ordered.</p> <p>NOTE: This route is not required if your provider uses passwords for SSH instead of SSH keys, assuming the password to access the server is returned in the order server payload.</p>",
-                "parameters": [
-                    {
-                        "$ref": "#/parameters/Auth-Token"
-                    },
-                    {
-                        "name": "payload",
-                        "in": "body",
-                        "description": "Key ID and contents to save",
-                        "required": true,
-                        "schema": {
-                            "required": [
-                                "name",
-                                "key"
-                            ],
-                            "properties": {
-                                "name": {
-                                    "description": "the name of this key that will be used as an identifier when ordering a server",
-                                    "type": "string"
-                                },
-                                "key": {
-                                    "description": "The public key to register with the user's account. It is assumed that this public key will be installed on every server launched by this integration.",
-                                    "type": "string"
-                                }
-                            },
-                            "type": "object"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "successful operation",
-                        "schema": {
-                            "required": [
-                                "id"
-                            ],
-                            "properties": {
-                                "id": {
-                                    "description": "fingerprint or key identifier to use when ordering servers",
-                                    "type": "string"
-                                }
-                            },
-                            "type": "object"
-                        }
-                    },
-                    "default": {
-                        "$ref": "#/responses/default"
-                    }
-                }
-            }
-        },
         "/servers": {
             "post": {
                 "tags": [
                     "servers"
                 ],
                 "summary": "Order Server",
-                "description": "The `/servers` route is how nanobox submits a request to order a new server. This route SHOULD NOT hold open the request until the server is ready. The request should return immediately once the order has been submitted with an identifier that nanobox can use to followup on the order status.",
+                "description": "The `/servers` route is how Nanobox submits a request to order a new server. This route SHOULD NOT hold open the request until the server is ready. The request should return immediately once the order has been submitted with an identifier that Nanobox can use to followup on the order status.",
+                "externalDocs": {
+                    "description": "Official documentation here",
+                    "url": "https://docs.nanobox.io/providers/create/#order-server"
+                },
+                "operationId": "order-server",
                 "parameters": [
                     {
                         "$ref": "#/parameters/Auth-Token"
@@ -297,7 +487,7 @@
                             ],
                             "properties": {
                                 "name": {
-                                    "description": "nanobox-generated name used to identify the machine visually as ordered by nanobox",
+                                    "description": "Nanobox-generated name used to identify the machine visually as ordered by Nanobox",
                                     "type": "string"
                                 },
                                 "region": {
@@ -320,6 +510,11 @@
                 "responses": {
                     "201": {
                         "description": "successful operation",
+                        "examples": {
+                            "application/json": {
+                                "id": "provider-server-ID"
+                            }
+                        },
                         "schema": {
                             "required": [
                                 "id"
@@ -345,7 +540,12 @@
                     "servers"
                 ],
                 "summary": "Query Server",
-                "description": "The `GET /servers/{id}` route is used by nanobox to query state about a previously ordered server. This state is used to inform nanobox when the server is ready to be provisioned and also how to connect to the server.",
+                "description": "The `GET /servers/{id}` route is used by Nanobox to query state about a previously ordered server. This state is used to inform Nanobox when the server is ready to be provisioned and also how to connect to the server.",
+                "externalDocs": {
+                    "description": "Official documentation here",
+                    "url": "https://docs.nanobox.io/providers/create/#query-server"
+                },
+                "operationId": "query-server",
                 "parameters": [
                     {
                         "$ref": "#/parameters/Auth-Token"
@@ -361,6 +561,16 @@
                 "responses": {
                     "201": {
                         "description": "successful operation",
+                        "examples": {
+                            "application/json": {
+                                "id": "provider-server-ID",
+                                "status": "active",
+                                "name": "nanobox.io-cool-app-do.1.1",
+                                "external_ip": "192.0.2.15",
+                                "internal_ip": "192.168.0.15",
+                                "password": "d7h%*ttGqY"
+                            }
+                        },
                         "schema": {
                             "required": [
                                 "id",
@@ -408,25 +618,15 @@
                     "servers"
                 ],
                 "summary": "Cancel Server",
-                "description": "The `DELETE /servers/{id}` route is used to cancel a server that was previously ordered via nanobox. This route SHOULD NOT hold open the request until the server is completely canceled. It should return immediately once the order to cancel has been submitted.",
+                "description": "The `DELETE /servers/{id}` route is used to cancel a server that was previously ordered via Nanobox. This route SHOULD NOT hold open the request until the server is completely canceled. It should return immediately once the order to cancel has been submitted.",
+                "externalDocs": {
+                    "description": "Official documentation here",
+                    "url": "https://docs.nanobox.io/providers/create/#cancel-server"
+                },
+                "operationId": "cancel-server",
                 "parameters": [
                     {
                         "$ref": "#/parameters/Auth-Token"
-                    },
-                    {
-                        "name": "payload",
-                        "in": "body",
-                        "description": "Server ID",
-                        "required": true,
-                        "schema": {
-                            "properties": {
-                                "id": {
-                                    "description": "the server id (added here as a convenience)",
-                                    "type": "string"
-                                }
-                            },
-                            "type": "object"
-                        }
                     },
                     {
                         "name": "id",
@@ -452,25 +652,15 @@
                     "servers"
                 ],
                 "summary": "Reboot Server",
-                "description": "The `/servers/{id}/reboot` route is used to reboot a server that was previously ordered via nanobox. This route SHOULD NOT hold open the request until the server is completely rebooted. It should return immediately once the order to reboot has been submitted",
+                "description": "The `/servers/{id}/reboot` route is used to reboot a server that was previously ordered via Nanobox. This route SHOULD NOT hold open the request until the server is completely rebooted. It should return immediately once the order to reboot has been submitted",
+                "externalDocs": {
+                    "description": "Official documentation here",
+                    "url": "https://docs.nanobox.io/providers/create/#reboot-server"
+                },
+                "operationId": "reboot-server",
                 "parameters": [
                     {
                         "$ref": "#/parameters/Auth-Token"
-                    },
-                    {
-                        "name": "payload",
-                        "in": "body",
-                        "description": "Server ID",
-                        "required": true,
-                        "schema": {
-                            "properties": {
-                                "id": {
-                                    "description": "the server id (added here as a convenience)",
-                                    "type": "string"
-                                }
-                            },
-                            "type": "object"
-                        }
                     },
                     {
                         "name": "id",
@@ -496,7 +686,12 @@
                     "servers"
                 ],
                 "summary": "Rename Server",
-                "description": "The `/servers/{id}/rename` route is used to rename a server that was previously ordered via nanobox. This route SHOULD NOT hold open the request until the server is completely renamed. It should return immediately once the order to rename has been submitted.",
+                "description": "The `/servers/{id}/rename` route is used to rename a server that was previously ordered via Nanobox. This route SHOULD NOT hold open the request until the server is completely renamed. It should return immediately once the order to rename has been submitted.",
+                "externalDocs": {
+                    "description": "Official documentation here",
+                    "url": "https://docs.nanobox.io/providers/create/#rename-server"
+                },
+                "operationId": "rename-server",
                 "parameters": [
                     {
                         "$ref": "#/parameters/Auth-Token"
@@ -504,17 +699,13 @@
                     {
                         "name": "payload",
                         "in": "body",
-                        "description": "Server ID and new name",
+                        "description": "New server name",
                         "required": true,
                         "schema": {
                             "required": [
                                 "name"
                             ],
                             "properties": {
-                                "id": {
-                                    "description": "the server id (added here as a convenience)",
-                                    "type": "string"
-                                },
                                 "name": {
                                     "description": "the new name of the server",
                                     "type": "string"
@@ -570,5 +761,19 @@
                 "type": "object"
             }
         }
-    }
+    },
+    "tags": [
+        {
+            "name": "meta",
+            "description": "Endpoints related to the provider"
+        },
+        {
+            "name": "keys",
+            "description": "Endpoints related to SSH key management"
+        },
+        {
+            "name": "servers",
+            "description": "Endpoints related to server management"
+        }
+    ]
 }

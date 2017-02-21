@@ -2,6 +2,7 @@
 
 use App\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Mockery\Mock;
 
 class MetaEndpointsTest extends TestCase
 {
@@ -17,13 +18,20 @@ class MetaEndpointsTest extends TestCase
             ->seeJsonStructure([
                 'id',
                 'name',
-                'server_nickname',
+                'server_nick_name',
                 'default_region',
                 'default_size',
+                'default_plan',
                 'can_reboot',
                 'can_rename',
                 'ssh_auth_method',
-                'credential_fields',
+                'credential_fields' => [
+                    '*' => [
+                        'key',
+                        'label',
+                    ],
+                ],
+                'instructions',
             ]);
     }
 
@@ -40,7 +48,8 @@ class MetaEndpointsTest extends TestCase
                     'name',
                     'plans' => [
                         '*' => [
-                            'title',
+                            'id',
+                            'name',
                             'specs' => [
                                 '*' => [
                                     'id',
@@ -66,24 +75,58 @@ class MetaEndpointsTest extends TestCase
         $this->beginDatabaseTransaction();
 
         $user = factory(User::class)->create();
+        Proxmox::swap(new Mock());
+        Proxmox::shouldReceive('login')->once()->andReturn(null);
+        Proxmox::shouldReceive('get')->once()->with('/nodes')->andReturn(['data' => [['node' => 'pve']]]);
+        Proxmox::shouldReceive('get')->once()->with('/storage')->andReturn(['data' => [['storage' => 'local-lvm']]]);
 
         $this->json('POST', '/api/v1/verify')
             ->assertResponseStatus(401)
-            ->seeJson(['errors' => ['Missing one or more creds']]);
+            ->seeJson(['errors' => ['Missing one or more required creds']]);
 
-        $this->json('POST', '/api/v1/verify', ['auth' => ['host' => '', 'user' => '', 'realm' => '']])
+        $this->json('POST', '/api/v1/verify', [], [
+            'auth-hostname' => '',
+            'auth-username' => '',
+            'auth-realm'    => '',
+        ])
             ->assertResponseStatus(401)
-            ->seeJson(['errors' => ['Missing one or more creds']]);
+            ->seeJson(['errors' => ['Missing one or more required creds']]);
 
-        $this->json('POST', '/api/v1/verify', ['auth' => ['host' => $user->host, 'user' => $user->user, 'realm' => $user->realm]])
+        $this->json('POST', '/api/v1/verify', [], [
+            'auth-hostname' => $user->hostname,
+            'auth-username' => $user->username,
+            'auth-realm'    => $user->realm,
+        ])
             ->assertResponseStatus(401)
-            ->seeJson(['errors' => ['Missing one or more creds']]);
+            ->seeJson(['errors' => ['Missing one or more required creds']]);
 
-        $this->json('POST', '/api/v1/verify', ['auth' => ['host' => '', 'user' => '', 'realm' => '', 'password' => '']])
+        $this->json('POST', '/api/v1/verify', [], [
+            'auth-hostname' => '',
+            'auth-username' => '',
+            'auth-realm'    => '',
+            'auth-password' => '',
+        ])
             ->assertResponseStatus(401)
-            ->seeJson(['errors' => ['Missing one or more creds']]);
+            ->seeJson(['errors' => ['Missing one or more required creds']]);
 
-        $this->json('POST', '/api/v1/verify', ['auth' => ['host' => $user->host, 'user' => $user->user, 'realm' => $user->realm, 'password' => $user->password]])
+        $this->json('POST', '/api/v1/verify', [], [
+            'auth-hostname' => $user->hostname,
+            'auth-username' => $user->username,
+            'auth-realm'    => $user->realm,
+            'auth-password' => $user->password,
+        ])
+            ->assertResponseStatus(200)
+            ->see('');
+
+        $this->json('POST', '/api/v1/verify', [], [
+            'auth-hostname' => $user->hostname,
+            'auth-port'     => $user->port,
+            'auth-username' => $user->username,
+            'auth-realm'    => $user->realm,
+            'auth-password' => $user->password,
+            'auth-node'     => 'pve',
+            'auth-storage'  => 'local-lvm',
+        ])
             ->assertResponseStatus(200)
             ->see('');
     }

@@ -46,6 +46,6 @@ class ServerSize extends Model
 
     public function serverPlans()
     {
-        return $this->belongsToMany(ServerPlan::class);
+        return $this->belongsToMany(ServerPlan::class)->withTimestamps();
     }
 }

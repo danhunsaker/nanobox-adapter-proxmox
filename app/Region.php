@@ -32,6 +32,6 @@ class Region extends Model
 
     public function serverPlans()
     {
-        return $this->belongsToMany(ServerPlan::class);
+        return $this->belongsToMany(ServerPlan::class)->withTimestamps();
     }
 }

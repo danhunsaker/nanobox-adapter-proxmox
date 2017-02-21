@@ -13,6 +13,7 @@ class CreateKeysTable extends Migration
         Schema::create('keys', function (Blueprint $table) {
             $table->increments('id');
             $table->integer('user_id')->unsigned();
+            $table->string('code');
             $table->string('name');
             $table->string('key');
             $table->timestamps();

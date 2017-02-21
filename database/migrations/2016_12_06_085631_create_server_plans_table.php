@@ -12,7 +12,8 @@ class CreateServerPlansTable extends Migration
     {
         Schema::create('server_plans', function (Blueprint $table) {
             $table->increments('id');
-            $table->string('title');
+            $table->string('code');
+            $table->string('name');
             $table->timestamps();
             $table->softDeletes();
         });

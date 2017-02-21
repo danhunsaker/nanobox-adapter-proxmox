@@ -12,6 +12,9 @@ run.config:
     # enables php extensions
     extensions:
       # required by app
+      - curl
+      - gmp
+      - mcrypt
       - pdo_mysql
       - redis
 
@@ -45,6 +48,10 @@ run.config:
     - node_modules
     - vendor
 
+  build_triggers:
+    - package.json
+    - composer.json
+
   # Adds binaries to the $PATH
   extra_path_dirs:
     - node_modules/.bin
@@ -54,7 +61,7 @@ run.config:
 
   # Runs npm in the final step of your build process
   extra_steps:
-    - npm install
+    - yarn
 
 deploy.config:
   transform:
@@ -90,7 +97,7 @@ web.laravel:
     - bootstrap/cache
 
 worker.laravel:
-  start: php artisan queue:work --queue=default --daemon --tries=5
+  start: php artisan queue:work --queue=default --daemon --tries=15 --timeout=3600 --delay=15
 
   # pipes log output in your app's log-stream
   log_watch:

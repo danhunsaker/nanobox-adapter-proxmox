@@ -22,7 +22,7 @@ class Key extends Model
      * @var array
      */
     protected $fillable = [
-        'name', 'key',
+        'code', 'name', 'key',
     ];
 
     /**

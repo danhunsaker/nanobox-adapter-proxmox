@@ -23,7 +23,7 @@ class Server extends Model
      * @var array
      */
     protected $fillable = [
-        'name',
+        'name', 'password', 'node', 'storage',
     ];
 
     /**
@@ -70,6 +70,6 @@ class Server extends Model
 
     public function setPasswordAttribute($value)
     {
-        $this->attributes['password'] = Crypt::encrypt($value);
+        $this->attributes['password'] = empty($value) ? null : Crypt::encrypt($value);
     }
 }

@@ -154,6 +154,8 @@ return [
          * Package Service Providers...
          */
         Barryvdh\Cors\ServiceProvider::class,
+        Collective\Remote\RemoteServiceProvider::class,
+        h1g\Proxmox\ProxmoxServiceProvider::class,
         Intouch\LaravelNewrelic\NewrelicServiceProvider::class,
         Jlapp\Swaggervel\SwaggervelServiceProvider::class,
 
@@ -212,6 +214,8 @@ return [
         'View'      => Illuminate\Support\Facades\View::class,
 
         'Newrelic' => Intouch\LaravelNewrelic\Facades\Newrelic::class,
+        'Proxmox'  => h1g\Proxmox\ProxmoxFacade::class,
+        'SSH'      => Collective\Remote\RemoteFacade::class,
 
     ],
 

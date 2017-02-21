@@ -16,7 +16,7 @@ class User extends Authenticatable
      * @var array
      */
     protected $fillable = [
-        'host', 'user', 'realm', 'password',
+        'hostname', 'port', 'username', 'realm', 'password',
     ];
 
     /**

@@ -104,7 +104,7 @@ header('Access-Control-Allow-Headers: X-Requested-With');
                         log("Unable to Load SwaggerUI");
                     },
                     docExpansion: "list",
-                    apisSorter: "alpha",
+                    // apisSorter: "alpha",
                     showRequestHeaders: true,
                     defaultModelRendering: "model",
                     jsonEditor: true

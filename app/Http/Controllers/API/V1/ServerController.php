@@ -3,13 +3,21 @@
 namespace App\Http\Controllers\API\V1;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\DeleteVM;
+use App\Jobs\RebootVM;
+use App\Jobs\RenameVM;
+use App\Jobs\TrackVMCreate;
 use App\Key;
 use App\Region;
 use App\Server;
 use App\ServerSize;
 use App\User;
+use GuzzleHttp\Exception\RequestException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Proxmox;
+use ProxmoxVE\Exception\AuthenticationException;
+use ProxmoxVE\Exception\MalformedCredentialsException;
 
 class ServerController extends Controller
 {
@@ -18,41 +26,31 @@ class ServerController extends Controller
      *      path="/servers",
      *      summary="Order Server",
      *      tags={"servers"},
-     *      description="The `/servers` route is how nanobox submits a request to order a new server. This route SHOULD NOT hold open the request until the server is ready. The request should return immediately once the order has been submitted with an identifier that nanobox can use to followup on the order status.",
+     *      operationId="order-server",
+     *      externalDocs={
+     *          "description"="Official documentation here",
+     *          "url"="https://docs.nanobox.io/providers/create/#order-server",
+     *      },
+     *      description="The `/servers` route is how Nanobox submits a request to order a new server. This route SHOULD NOT hold open the request until the server is ready. The request should return immediately once the order has been submitted with an identifier that Nanobox can use to followup on the order status.",
+     *      @SWG\Parameter(ref="#/parameters/Auth-Hostname"),
+     *      @SWG\Parameter(ref="#/parameters/Auth-Port"),
+     *      @SWG\Parameter(ref="#/parameters/Auth-Username"),
+     *      @SWG\Parameter(ref="#/parameters/Auth-Realm"),
+     *      @SWG\Parameter(ref="#/parameters/Auth-Password"),
+     *      @SWG\Parameter(ref="#/parameters/Auth-Node"),
+     *      @SWG\Parameter(ref="#/parameters/Auth-Storage"),
      *      @SWG\Parameter(
      *          name="payload",
-     *          description="User creds and server creation data",
+     *          description="Server creation data",
      *          in="body",
      *          required=true,
      *          @SWG\Schema(
      *              type="object",
-     *              required={"auth","name","region","size"},
-     *              @SWG\Property(
-     *                  property="auth",
-     *                  type="object",
-     *                  description="key/value pairs containing the `credential_fields` and their corresponding values as populated by the user. This will provide the necessary values to authorize the user within this provider",
-     *                  required={"host","user","realm","password"},
-     *                  @SWG\Property(
-     *                      property="host",
-     *                      type="string",
-     *                  ),
-     *                  @SWG\Property(
-     *                      property="user",
-     *                      type="string",
-     *                  ),
-     *                  @SWG\Property(
-     *                      property="realm",
-     *                      type="string",
-     *                  ),
-     *                  @SWG\Property(
-     *                      property="password",
-     *                      type="string",
-     *                  ),
-     *              ),
+     *              required={"name","region","size"},
      *              @SWG\Property(
      *                  property="name",
      *                  type="string",
-     *                  description="nanobox-generated name used to identify the machine visually as ordered by nanobox",
+     *                  description="Nanobox-generated name used to identify the machine visually as ordered by Nanobox",
      *              ),
      *              @SWG\Property(
      *                  property="region",
@@ -72,8 +70,17 @@ class ServerController extends Controller
      *          ),
      *      ),
      *      @SWG\Response(
+     *          response="default",
+     *          ref="#/responses/default",
+     *      ),
+     *      @SWG\Response(
      *          response=201,
      *          description="successful operation",
+     *          examples={
+     *              "application/json"={
+     *                  "id"="provider-server-ID",
+     *              },
+     *          },
      *          @SWG\Schema(
      *              type="object",
      *              required={"id"},
@@ -84,32 +91,21 @@ class ServerController extends Controller
      *              ),
      *          ),
      *      ),
-     *      @SWG\Response(
-     *          response=401,
-     *          description="Unauthorized",
-     *          @SWG\Schema(
-     *              type="object",
-     *              required={"errors"},
-     *              @SWG\Property(
-     *                  property="errors",
-     *                  type="array",
-     *                  @SWG\Items(
-     *                      type="string",
-     *                  ),
-     *              ),
-     *          ),
-     *      ),
      *  )
      */
     public function store(Request $request)
     {
-        $user   = User::where(collect($request->json('auth'))->only(['host', 'user', 'realm'])->all())->first();
-        $region = Region::where('code', $request->json('region', 'own'))->firstOrFail();
-        $size   = ServerSize::where('code', $request->json('size', '512mb'))->firstOrFail();
+        $user   = $request->user;
+        $region = Region::where('code', $request->json('region', Region::first()->code))->firstOrFail();
+        $size   = ServerSize::where('code', $request->json('size', ServerSize::first()->code))->firstOrFail();
         $key    = Key::where('name', $request->json('ssh_key'))->first();
 
-        $name   = $request->json('name');
-        $server = Server::create(compact('name'));
+        $name     = $request->json('name');
+        $password = Str::random(25);
+        $node     = $request->creds['node'];
+        $storage  = $request->creds['storage'];
+        $archive  = "backup/vzdump-qemu-nanobox-ubuntu-{$size->disk}G.vma.gz";
+        $server   = new Server(compact('name', 'password', 'node', 'storage'));
 
         $server->user()->associate($user);
         $server->region()->associate($region);
@@ -117,16 +113,41 @@ class ServerController extends Controller
 
         if ( ! is_null($key)) {
             $server->key()->associate($key);
+            $server->password = null;
         }
 
-        $server->password = Str::random(25);
+        $this->getHost($user);
+        $server->vmid = Proxmox::get('/cluster/nextid')['data'];
 
-        // TODO: Create server
+        // Verify the image we want is actually available
+        $result = Proxmox::get("/nodes/{$node}/storage/local/content/{$archive}");
 
-        // Need to update this to use the VMID instead of this API's internal ID
-        $server->unique_id = Str::slug("{$region->code} {$user->host} {$server->id}");
+        if (isset($result['errors'])) {
+            abort(502, json_encode($result['errors']));
+        } elseif (empty($result['data'])) {
+            abort(502, "local:{$archive} image not found on server");
+        }
+
+        // Looks alright; create the VM
+        $result = Proxmox::create("/nodes/{$node}/qemu", [
+            'vmid'    => $server->vmid,
+            'storage' => $storage,
+            'archive' => "local:{$archive}",
+            'unique'  => true,
+        ]);
+
+        if (isset($result['errors'])) {
+            abort(502, json_encode($result['errors']));
+        } elseif (empty($result['data'])) {
+            abort(502, 'Unknown error on Proxmox server');
+        }
+
+        // Success!  Save the server details to the DB
+        $server->unique_id = Str::slug(strtr("proxmox {$region->code} {$user->hostname} {$server->vmid}", '.', '_'));
 
         $server->save();
+
+        $this->dispatch(new TrackVMCreate($server, $result['data']));
 
         return response()->json(['id' => $server->unique_id], 201);
     }
@@ -136,44 +157,19 @@ class ServerController extends Controller
      *      path="/servers/{id}",
      *      summary="Query Server",
      *      tags={"servers"},
-     *      description="The `GET /servers/{id}` route is used by nanobox to query state about a previously ordered server. This state is used to inform nanobox when the server is ready to be provisioned and also how to connect to the server.",
-     *      @SWG\Parameter(
-     *          name="payload",
-     *          description="User creds and server ID",
-     *          in="body",
-     *          required=true,
-     *          @SWG\Schema(
-     *              type="object",
-     *              required={"auth"},
-     *              @SWG\Property(
-     *                  property="auth",
-     *                  type="object",
-     *                  description="key/value pairs containing the `credential_fields` and their corresponding values as populated by the user. This will provide the necessary values to authorize the user within this provider",
-     *                  required={"host","user","realm","password"},
-     *                  @SWG\Property(
-     *                      property="host",
-     *                      type="string",
-     *                  ),
-     *                  @SWG\Property(
-     *                      property="user",
-     *                      type="string",
-     *                  ),
-     *                  @SWG\Property(
-     *                      property="realm",
-     *                      type="string",
-     *                  ),
-     *                  @SWG\Property(
-     *                      property="password",
-     *                      type="string",
-     *                  ),
-     *              ),
-     *              @SWG\Property(
-     *                  property="id",
-     *                  type="string",
-     *                  description="the server id (added here as a convenience)",
-     *              ),
-     *          ),
-     *      ),
+     *      operationId="query-server",
+     *      externalDocs={
+     *          "description"="Official documentation here",
+     *          "url"="https://docs.nanobox.io/providers/create/#query-server",
+     *      },
+     *      description="The `GET /servers/{id}` route is used by Nanobox to query state about a previously ordered server. This state is used to inform Nanobox when the server is ready to be provisioned and also how to connect to the server.",
+     *      @SWG\Parameter(ref="#/parameters/Auth-Hostname"),
+     *      @SWG\Parameter(ref="#/parameters/Auth-Port"),
+     *      @SWG\Parameter(ref="#/parameters/Auth-Username"),
+     *      @SWG\Parameter(ref="#/parameters/Auth-Realm"),
+     *      @SWG\Parameter(ref="#/parameters/Auth-Password"),
+     *      @SWG\Parameter(ref="#/parameters/Auth-Node"),
+     *      @SWG\Parameter(ref="#/parameters/Auth-Storage"),
      *      @SWG\Parameter(
      *          name="id",
      *          in="path",
@@ -182,8 +178,22 @@ class ServerController extends Controller
      *          type="string",
      *      ),
      *      @SWG\Response(
+     *          response="default",
+     *          ref="#/responses/default",
+     *      ),
+     *      @SWG\Response(
      *          response=201,
      *          description="successful operation",
+     *          examples={
+     *              "application/json"={
+     *                  "id"="provider-server-ID",
+     *                  "status"="active",
+     *                  "name"="nanobox.io-cool-app-do.1.1",
+     *                  "external_ip"="192.0.2.15",
+     *                  "internal_ip"="192.168.0.15",
+     *                  "password"="d7h%*ttGqY"
+     *              },
+     *          },
      *          @SWG\Schema(
      *              type="object",
      *              required={"id","status","name","external_ip","internal_ip"},
@@ -219,40 +229,30 @@ class ServerController extends Controller
      *              ),
      *          ),
      *      ),
-     *      @SWG\Response(
-     *          response=401,
-     *          description="Unauthorized",
-     *          @SWG\Schema(
-     *              type="object",
-     *              required={"errors"},
-     *              @SWG\Property(
-     *                  property="errors",
-     *                  type="array",
-     *                  @SWG\Items(
-     *                      type="string",
-     *                  ),
-     *              ),
-     *          ),
-     *      ),
      * )
      */
     public function show(Request $request, $id)
     {
-        $user   = User::where(collect($request->json('auth'))->only(['host', 'user', 'realm'])->all())->first();
+        $user   = $request->user;
         $server = Server::where('unique_id', $id)->firstOrFail();
 
         if ($server->user->id != $user->id) {
             return abort(403, 'Server belongs to different user');
         }
 
-        return response()->json([
+        $result = [
             'id'          => $server->unique_id,
             'status'      => $server->status,
             'name'        => $server->name,
             'external_ip' => $server->external_ip,
             'internal_ip' => $server->internal_ip,
-            'password'    => $server->password,
-        ], 201);
+        ];
+
+        if ( ! empty($server->password)) {
+            $result['password'] = $server->password;
+        }
+
+        return response()->json($result, 201);
     }
 
     /**
@@ -260,44 +260,19 @@ class ServerController extends Controller
      *      path="/servers/{id}",
      *      summary="Cancel Server",
      *      tags={"servers"},
-     *      description="The `DELETE /servers/{id}` route is used to cancel a server that was previously ordered via nanobox. This route SHOULD NOT hold open the request until the server is completely canceled. It should return immediately once the order to cancel has been submitted.",
-     *      @SWG\Parameter(
-     *          name="payload",
-     *          description="User creds and server ID",
-     *          in="body",
-     *          required=true,
-     *          @SWG\Schema(
-     *              type="object",
-     *              required={"auth"},
-     *              @SWG\Property(
-     *                  property="auth",
-     *                  type="object",
-     *                  description="key/value pairs containing the `credential_fields` and their corresponding values as populated by the user. This will provide the necessary values to authorize the user within this provider",
-     *                  required={"host","user","realm","password"},
-     *                  @SWG\Property(
-     *                      property="host",
-     *                      type="string",
-     *                  ),
-     *                  @SWG\Property(
-     *                      property="user",
-     *                      type="string",
-     *                  ),
-     *                  @SWG\Property(
-     *                      property="realm",
-     *                      type="string",
-     *                  ),
-     *                  @SWG\Property(
-     *                      property="password",
-     *                      type="string",
-     *                  ),
-     *              ),
-     *              @SWG\Property(
-     *                  property="id",
-     *                  type="string",
-     *                  description="the server id (added here as a convenience)",
-     *              ),
-     *          ),
-     *      ),
+     *      operationId="cancel-server",
+     *      externalDocs={
+     *          "description"="Official documentation here",
+     *          "url"="https://docs.nanobox.io/providers/create/#cancel-server",
+     *      },
+     *      description="The `DELETE /servers/{id}` route is used to cancel a server that was previously ordered via Nanobox. This route SHOULD NOT hold open the request until the server is completely canceled. It should return immediately once the order to cancel has been submitted.",
+     *      @SWG\Parameter(ref="#/parameters/Auth-Hostname"),
+     *      @SWG\Parameter(ref="#/parameters/Auth-Port"),
+     *      @SWG\Parameter(ref="#/parameters/Auth-Username"),
+     *      @SWG\Parameter(ref="#/parameters/Auth-Realm"),
+     *      @SWG\Parameter(ref="#/parameters/Auth-Password"),
+     *      @SWG\Parameter(ref="#/parameters/Auth-Node"),
+     *      @SWG\Parameter(ref="#/parameters/Auth-Storage"),
      *      @SWG\Parameter(
      *          name="id",
      *          in="path",
@@ -306,41 +281,31 @@ class ServerController extends Controller
      *          type="string",
      *      ),
      *      @SWG\Response(
-     *          response=200,
-     *          description="successful operation",
-     *          @SWG\Schema(
-     *              type="string",
-     *          ),
+     *          response="default",
+     *          ref="#/responses/default",
      *      ),
      *      @SWG\Response(
-     *          response=401,
-     *          description="Unauthorized",
-     *          @SWG\Schema(
-     *              type="object",
-     *              required={"errors"},
-     *              @SWG\Property(
-     *                  property="errors",
-     *                  type="array",
-     *                  @SWG\Items(
-     *                      type="string",
-     *                  ),
-     *              ),
-     *          ),
+     *          response=200,
+     *          description="successful operation",
      *      ),
      * )
      */
     public function destroy(Request $request, $id)
     {
-        $user   = User::where(collect($request->json('auth'))->only(['host', 'user', 'realm'])->all())->first();
+        $user   = $request->user;
         $server = Server::where('unique_id', $id)->firstOrFail();
 
         if ($server->user->id != $user->id) {
             return abort(403, 'Server belongs to different user');
         }
 
-        // TODO: Destroy server
+        $server->status = 'destroying';
+        $server->save();
 
-        $server->delete();
+        $this->getHost($user);
+        $result = Proxmox::create("/nodes/{$server->node}/qemu/{$server->vmid}/status/stop");
+        $this->handleErrors($result, $server);
+        $this->dispatch(new DeleteVM($server, $result['data']));
 
         return response('', 200);
     }
@@ -350,44 +315,19 @@ class ServerController extends Controller
      *      path="/servers/{id}/reboot",
      *      summary="Reboot Server",
      *      tags={"servers"},
-     *      description="The `/servers/{id}/reboot` route is used to reboot a server that was previously ordered via nanobox. This route SHOULD NOT hold open the request until the server is completely rebooted. It should return immediately once the order to reboot has been submitted",
-     *      @SWG\Parameter(
-     *          name="payload",
-     *          description="User creds and server ID",
-     *          in="body",
-     *          required=true,
-     *          @SWG\Schema(
-     *              type="object",
-     *              required={"auth"},
-     *              @SWG\Property(
-     *                  property="auth",
-     *                  type="object",
-     *                  description="key/value pairs containing the `credential_fields` and their corresponding values as populated by the user. This will provide the necessary values to authorize the user within this provider",
-     *                  required={"host","user","realm","password"},
-     *                  @SWG\Property(
-     *                      property="host",
-     *                      type="string",
-     *                  ),
-     *                  @SWG\Property(
-     *                      property="user",
-     *                      type="string",
-     *                  ),
-     *                  @SWG\Property(
-     *                      property="realm",
-     *                      type="string",
-     *                  ),
-     *                  @SWG\Property(
-     *                      property="password",
-     *                      type="string",
-     *                  ),
-     *              ),
-     *              @SWG\Property(
-     *                  property="id",
-     *                  type="string",
-     *                  description="the server id (added here as a convenience)",
-     *              ),
-     *          ),
-     *      ),
+     *      operationId="reboot-server",
+     *      externalDocs={
+     *          "description"="Official documentation here",
+     *          "url"="https://docs.nanobox.io/providers/create/#reboot-server",
+     *      },
+     *      description="The `/servers/{id}/reboot` route is used to reboot a server that was previously ordered via Nanobox. This route SHOULD NOT hold open the request until the server is completely rebooted. It should return immediately once the order to reboot has been submitted",
+     *      @SWG\Parameter(ref="#/parameters/Auth-Hostname"),
+     *      @SWG\Parameter(ref="#/parameters/Auth-Port"),
+     *      @SWG\Parameter(ref="#/parameters/Auth-Username"),
+     *      @SWG\Parameter(ref="#/parameters/Auth-Realm"),
+     *      @SWG\Parameter(ref="#/parameters/Auth-Password"),
+     *      @SWG\Parameter(ref="#/parameters/Auth-Node"),
+     *      @SWG\Parameter(ref="#/parameters/Auth-Storage"),
      *      @SWG\Parameter(
      *          name="id",
      *          in="path",
@@ -396,39 +336,31 @@ class ServerController extends Controller
      *          type="string",
      *      ),
      *      @SWG\Response(
-     *          response=200,
-     *          description="successful operation",
-     *          @SWG\Schema(
-     *              type="string",
-     *          ),
+     *          response="default",
+     *          ref="#/responses/default",
      *      ),
      *      @SWG\Response(
-     *          response=401,
-     *          description="Unauthorized",
-     *          @SWG\Schema(
-     *              type="object",
-     *              required={"errors"},
-     *              @SWG\Property(
-     *                  property="errors",
-     *                  type="array",
-     *                  @SWG\Items(
-     *                      type="string",
-     *                  ),
-     *              ),
-     *          ),
+     *          response=200,
+     *          description="successful operation",
      *      ),
      * )
      */
     public function reboot(Request $request, $id)
     {
-        $user   = User::where(collect($request->json('auth'))->only(['host', 'user', 'realm'])->all())->first();
+        $user   = $request->user;
         $server = Server::where('unique_id', $id)->firstOrFail();
 
         if ($server->user->id != $user->id) {
             return abort(403, 'Server belongs to different user');
         }
 
-        // TODO: Reboot server
+        $server->status = 'rebooting';
+        $server->save();
+
+        $this->getHost($user);
+        $result = Proxmox::create("/nodes/{$server->node}/qemu/{$server->vmid}/status/shutdown");
+        $this->handleErrors($result, $server);
+        $this->dispatch(new RebootVM($server, $result['data']));
 
         return response('', 200);
     }
@@ -438,42 +370,27 @@ class ServerController extends Controller
      *      path="/servers/{id}/rename",
      *      summary="Rename Server",
      *      tags={"servers"},
-     *      description="The `/servers/{id}/rename` route is used to rename a server that was previously ordered via nanobox. This route SHOULD NOT hold open the request until the server is completely renamed. It should return immediately once the order to rename has been submitted.",
+     *      operationId="rename-server",
+     *      externalDocs={
+     *          "description"="Official documentation here",
+     *          "url"="https://docs.nanobox.io/providers/create/#rename-server",
+     *      },
+     *      description="The `/servers/{id}/rename` route is used to rename a server that was previously ordered via Nanobox. This route SHOULD NOT hold open the request until the server is completely renamed. It should return immediately once the order to rename has been submitted.",
+     *      @SWG\Parameter(ref="#/parameters/Auth-Hostname"),
+     *      @SWG\Parameter(ref="#/parameters/Auth-Port"),
+     *      @SWG\Parameter(ref="#/parameters/Auth-Username"),
+     *      @SWG\Parameter(ref="#/parameters/Auth-Realm"),
+     *      @SWG\Parameter(ref="#/parameters/Auth-Password"),
+     *      @SWG\Parameter(ref="#/parameters/Auth-Node"),
+     *      @SWG\Parameter(ref="#/parameters/Auth-Storage"),
      *      @SWG\Parameter(
      *          name="payload",
-     *          description="User creds and server ID",
+     *          description="New server name",
      *          in="body",
      *          required=true,
      *          @SWG\Schema(
      *              type="object",
-     *              required={"auth"},
-     *              @SWG\Property(
-     *                  property="auth",
-     *                  type="object",
-     *                  description="key/value pairs containing the `credential_fields` and their corresponding values as populated by the user. This will provide the necessary values to authorize the user within this provider",
-     *                  required={"host","user","realm","password"},
-     *                  @SWG\Property(
-     *                      property="host",
-     *                      type="string",
-     *                  ),
-     *                  @SWG\Property(
-     *                      property="user",
-     *                      type="string",
-     *                  ),
-     *                  @SWG\Property(
-     *                      property="realm",
-     *                      type="string",
-     *                  ),
-     *                  @SWG\Property(
-     *                      property="password",
-     *                      type="string",
-     *                  ),
-     *              ),
-     *              @SWG\Property(
-     *                  property="id",
-     *                  type="string",
-     *                  description="the server id (added here as a convenience)",
-     *              ),
+     *              required={"name"},
      *              @SWG\Property(
      *                  property="name",
      *                  type="string",
@@ -489,44 +406,57 @@ class ServerController extends Controller
      *          type="string",
      *      ),
      *      @SWG\Response(
-     *          response=200,
-     *          description="successful operation",
-     *          @SWG\Schema(
-     *              type="string",
-     *          ),
+     *          response="default",
+     *          ref="#/responses/default",
      *      ),
      *      @SWG\Response(
-     *          response=401,
-     *          description="Unauthorized",
-     *          @SWG\Schema(
-     *              type="object",
-     *              required={"errors"},
-     *              @SWG\Property(
-     *                  property="errors",
-     *                  type="array",
-     *                  @SWG\Items(
-     *                      type="string",
-     *                  ),
-     *              ),
-     *          ),
+     *          response=200,
+     *          description="successful operation",
      *      ),
      * )
      */
     public function rename(Request $request, $id)
     {
-        $user   = User::where(collect($request->json('auth'))->only(['host', 'user', 'realm'])->all())->first();
+        $user   = $request->user;
         $server = Server::where('unique_id', $id)->firstOrFail();
+        $name   = $request->json('name');
 
         if ($server->user->id != $user->id) {
             return abort(403, 'Server belongs to different user');
         }
 
-        $server->name = $request->json('name');
-
-        // TODO: Rename server
-
-        $server->save();
+        $this->getHost($user);
+        $result = Proxmox::create("/nodes/{$server->node}/qemu/{$server->vmid}/config", compact('name'));
+        $this->handleErrors($result, $server);
+        $this->dispatch(new RenameVM($server, $result['data'], $name));
 
         return response('', 200);
+    }
+
+    protected function getHost($user)
+    {
+        try {
+            config(['proxmox.server' => $user->makeVisible('password')->toArray()]);
+            Proxmox::login();
+        } catch (RequestException $e) {
+            abort(400, $e->getMessage());
+        } catch (MalformedCredentialsException $e) {
+            abort(400, $e->getMessage());
+        } catch (AuthenticationException $e) {
+            abort(403, $e->getMessage());
+        }
+    }
+
+    protected function handleErrors($result, $server)
+    {
+        if (isset($result['errors'])) {
+            $server->status = 'error';
+            $server->save();
+            abort(502, json_encode($result['errors']));
+        } elseif (empty($result['data'])) {
+            $server->status = 'error';
+            $server->save();
+            abort(502, 'Unknown error on Proxmox server');
+        }
     }
 }
