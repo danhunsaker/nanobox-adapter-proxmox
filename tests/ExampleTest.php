@@ -9,7 +9,8 @@ class ExampleTest extends TestCase
     public function testBasicExample()
     {
         $this->visit('/')
-             ->see('Laravel')
+             ->see('Nanobox Cloud Provider – Proxmox')
+             ->dontSee('Laravel')
              ->dontSee('Rails')
              ->dontSee('Swagger');
     }

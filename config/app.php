@@ -155,6 +155,7 @@ return [
          */
         Barryvdh\Cors\ServiceProvider::class,
         Collective\Remote\RemoteServiceProvider::class,
+        GrahamCampbell\Markdown\MarkdownServiceProvider::class,
         h1g\Proxmox\ProxmoxServiceProvider::class,
         Intouch\LaravelNewrelic\NewrelicServiceProvider::class,
         Jlapp\Swaggervel\SwaggervelServiceProvider::class,
@@ -213,6 +214,7 @@ return [
         'Validator' => Illuminate\Support\Facades\Validator::class,
         'View'      => Illuminate\Support\Facades\View::class,
 
+        'Markdown' => GrahamCampbell\Markdown\Facades\Markdown::class,
         'Newrelic' => Intouch\LaravelNewrelic\Facades\Newrelic::class,
         'Proxmox'  => h1g\Proxmox\ProxmoxFacade::class,
         'SSH'      => Collective\Remote\RemoteFacade::class,

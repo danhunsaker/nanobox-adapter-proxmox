@@ -81,6 +81,18 @@ class NeedAuthData
             'storage'  => $request->header('auth-storage', 'local-lvm'),
         ];
 
+        if (empty($creds['port'])) {
+            $creds['port'] = 8006;
+        }
+
+        if (empty($creds['node'])) {
+            $creds['node'] = 'pve';
+        }
+
+        if (empty($creds['storage'])) {
+            $creds['storage'] = 'local-lvm';
+        }
+
         if (empty($creds['hostname']) || empty($creds['username']) || empty($creds['realm']) || empty($creds['password'])) {
             return abort(401, 'Missing one or more required creds');
         }
