@@ -44,10 +44,9 @@ run.config:
     - nodejs
     - newrelic
 
-  # Tells nanobox to cache & reuse the node_modules and vendor directories
+  # Tells nanobox to cache & reuse the node_modules directory
   cache_dirs:
-    - node_modules
-    - vendor
+    - /node_modules
 
   build_triggers:
     - package.json
@@ -56,7 +55,6 @@ run.config:
   # Adds binaries to the $PATH
   extra_path_dirs:
     - node_modules/.bin
-    - vendor/bin
 
   fs_watch: true
 
@@ -98,7 +96,7 @@ web.laravel:
     - bootstrap/cache
 
 worker.laravel:
-  start: php artisan queue:work --queue=default --daemon --tries=15 --timeout=3600 --delay=15
+  start: php artisan queue:work --queue=default --daemon --tries=15 --delay=15
 
   # pipes log output in your app's log-stream
   log_watch:
