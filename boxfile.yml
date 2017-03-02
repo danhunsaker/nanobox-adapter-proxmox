@@ -16,6 +16,7 @@ run.config:
       - gmp
       - libsodium
       - mcrypt
+      - newrelic
       - pdo_mysql
       - redis
 
@@ -65,6 +66,8 @@ run.config:
 deploy.config:
   transform:
     - cp .env.nanobox .env
+    - sed -i -e "s:license=.*:license=\"${NEWRELIC_LICENSE}\":" -e "s:appname=.*:appname=\"${APP_NAME}\":" /data/etc/php.*/newrelic.ini
+    - sed -i "s:license_key=.*:license_key=\"${NEWRELIC_LICENSE}\":" /app/newrelic.cfg
   before_live:
     web.laravel:
       - php artisan migrate --force
@@ -76,16 +79,18 @@ deploy.config:
 
 # creates a web component in sim and production environments
 web.laravel:
-  # commands to start PHP-FPM and Apache
-  start: php-server
+  start:
+    newrelic: newrelic-daemon -f -c newrelic.cfg
+    laravel: php-server
 
   # pipes log output in your app's log-stream
   log_watch:
-    web[laravel[apache[access]]]: /data/var/log/apache/access.log
-    web[laravel[php[fpm]]]: /data/var/log/php/php_fpm.log
-    web[laravel[apache[error]]]: /data/var/log/apache/error.log
-    web[laravel[php[error]]]: /data/var/log/php/php_error.log
-    web[laravel[laravel[error]]]: /app/storage/logs/laravel.log
+    apache[access]: /data/var/log/apache/access.log
+    php[fpm]: /data/var/log/php/php_fpm.log
+    newrelic[error]: /data/var/log/newrelic/nrsysmond.log
+    apache[error]: /data/var/log/apache/error.log
+    php[error]: /data/var/log/php/php_error.log
+    laravel[error]: /app/storage/logs/laravel.log
 
   network_dirs:
     data.storage:
@@ -96,12 +101,15 @@ web.laravel:
     - bootstrap/cache
 
 worker.laravel:
-  start: php artisan queue:work --queue=default --daemon --tries=15 --delay=15
+  start:
+    newrelic: newrelic-daemon -f -c newrelic.cfg
+    laravel: php artisan queue:work --queue=default --daemon --tries=15 --delay=15
 
   # pipes log output in your app's log-stream
   log_watch:
-    worker[laravel[php[error]]]: /data/var/log/php/php_error.log
-    worker[laravel[laravel[error]]]: /app/storage/logs/laravel.log
+    newrelic[error]: /data/var/log/newrelic/nrsysmond.log
+    php[error]: /data/var/log/php/php_error.log
+    laravel[error]: /app/storage/logs/laravel.log
 
   network_dirs:
     data.storage:

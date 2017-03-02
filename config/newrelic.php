@@ -31,7 +31,7 @@ return [
      *          "GET /world" with pattern 'hello {path} you really {method} me' would return:
      *          'hello /world you really GET me'
      */
-    'name_provider' => env('NEWRELIC_NAME_PROVIDER', '{method} {uri} => {route} / {path}'),
+    'name_provider' => env('NEWRELIC_NAME_PROVIDER', '{method} {path} => {route}'),
 
     /*
      * Will cause an exception to be thrown if the NewRelic
