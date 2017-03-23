@@ -155,6 +155,7 @@ return [
          */
         Barryvdh\Cors\ServiceProvider::class,
         Collective\Remote\RemoteServiceProvider::class,
+        Fideloper\Proxy\TrustedProxyServiceProvider::class,
         GrahamCampbell\Markdown\MarkdownServiceProvider::class,
         h1g\Proxmox\ProxmoxServiceProvider::class,
         Intouch\LaravelNewrelic\NewrelicServiceProvider::class,
