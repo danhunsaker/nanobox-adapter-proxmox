@@ -36,6 +36,12 @@ run.config:
       # - json
       # - phar
 
+    dev_extensions:
+      add:
+        - pcntl
+        - posix
+        - readline
+
     dev_zend_extensions:
       add:
         - xdebug
@@ -61,6 +67,7 @@ run.config:
 
   # Runs npm in the final step of your build process
   extra_steps:
+    - ln -s /app/xdebug.ini /data/etc/php.d/
     - yarn
 
 deploy.config:
