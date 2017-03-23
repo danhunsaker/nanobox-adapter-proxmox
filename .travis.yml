@@ -5,12 +5,17 @@ services:
 
 install:
   - sudo bash -c "$(curl -fsSL https://s3.amazonaws.com/tools.nanobox.io/bootstrap/ci.sh)"
-  - nanobox run -v cp .env.nanobox .env
-  - nanobox run -v php artisan key:generate || ( xit=$? && [ $xit -eq 129 ] && true || exit $xit )
-  - nanobox run -v php artisan migrate --force --seed || ( xit=$? && [ $xit -eq 129 ] && true || exit $xit )
+  - nanobox config set ci-mode true
+  - nanobox run cp .env.nanobox .env
+  - nanobox run php artisan key:generate || ( xit=$? && [ $xit -eq 129 ] && true || exit $xit )
+  - nanobox run php artisan migrate --force --seed || ( xit=$? && [ $xit -eq 129 ] && true || exit $xit )
 
 script:
-  - nanobox run -v phpunit -v || ( xit=$? && [ $xit -eq 129 ] && true || exit $xit )
+  - nanobox run phpunit -v || ( xit=$? && [ $xit -eq 129 ] && true || exit $xit )
 
 after_failure:
   - cat storage/logs/laravel.log
+
+after_success:
+  - nanobox remote add ${NANOBOX_REMOTE}
+  - nanobox deploy
