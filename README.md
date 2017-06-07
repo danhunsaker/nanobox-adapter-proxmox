@@ -1,4 +1,4 @@
-# nanobox-provider-proxmox [![Build Status Image](https://travis-ci.org/danhunsaker/nanobox-provider-proxmox.svg)](https://travis-ci.org/danhunsaker/nanobox-provider-proxmox)
+# nanobox-adapter-proxmox [![Build Status Image](https://travis-ci.org/danhunsaker/nanobox-adapter-proxmox.svg)](https://travis-ci.org/danhunsaker/nanobox-adapter-proxmox)
 
 Provider for deploying Nanobox apps to Proxmox clusters.
 

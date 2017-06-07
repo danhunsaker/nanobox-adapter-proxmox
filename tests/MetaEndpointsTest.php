@@ -24,7 +24,12 @@ class MetaEndpointsTest extends TestCase
                 'default_plan',
                 'can_reboot',
                 'can_rename',
+                'internal_iface',
+                'external_iface',
+                'ssh_user',
                 'ssh_auth_method',
+                'ssh_key_method',
+                'bootstrap_script',
                 'credential_fields' => [
                     '*' => [
                         'key',

@@ -6,7 +6,7 @@ services:
 install:
   - sudo bash -c "$(curl -fsSL https://s3.amazonaws.com/tools.nanobox.io/bootstrap/ci.sh)"
   - nanobox config set ci-mode true
-  - nanobox run cp .env.nanobox .env
+  - nanobox run cp .env.nanobox .env || ( xit=$? && [ $xit -eq 129 ] && true || exit $xit )
   - nanobox run php artisan key:generate || ( xit=$? && [ $xit -eq 129 ] && true || exit $xit )
   - nanobox run php artisan migrate --force --seed || ( xit=$? && [ $xit -eq 129 ] && true || exit $xit )
 

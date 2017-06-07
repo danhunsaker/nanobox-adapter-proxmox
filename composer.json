@@ -1,5 +1,5 @@
 {
-    "name": "nanobox-io/nanobox-provider-proxmox",
+    "name": "nanobox-io/nanobox-adapter-proxmox",
     "description": "Provider for deploying Nanobox apps to Proxmox clusters.",
     "keywords": ["nanobox", "proxmox"],
     "license": "MIT",

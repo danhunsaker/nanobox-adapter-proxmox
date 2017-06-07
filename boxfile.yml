@@ -50,6 +50,7 @@ run.config:
   extra_packages:
     - nodejs
     - newrelic
+    - python-2
 
   # Tells nanobox to cache & reuse the node_modules directory
   cache_dirs:

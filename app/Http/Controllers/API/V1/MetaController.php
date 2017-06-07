@@ -38,7 +38,12 @@ class MetaController extends Controller
      *                  "default_plan"="1c",
      *                  "can_reboot"=true,
      *                  "can_rename"=true,
+     *                  "internal_iface"="eth1",
+     *                  "external_iface"="eth0",
+     *                  "ssh_user"="root",
      *                  "ssh_auth_method"="password",
+     *                  "ssh_key_method"="reference",
+     *                  "bootstrap_script"="https://s3.amazonaws.com/tools.nanobox.io/bootstrap/ubuntu.sh",
      *                  "credential_fields"={
      *                      {
      *                          "key"="hostname",
@@ -74,7 +79,7 @@ class MetaController extends Controller
      *          },
      *          @SWG\Schema(
      *              type="object",
-     *              required={"id","name","server_nick_name","default_region","default_size","can_reboot","can_rename","credential_fields"},
+     *              required={"id","name","server_nick_name","default_region","default_size","can_reboot","can_rename","internal_iface","external_iface","ssh_user","ssh_auth_method","ssh_key_method","bootstrap_script","credential_fields"},
      *              @SWG\Property(
      *                  property="id",
      *                  type="string",
@@ -116,10 +121,36 @@ class MetaController extends Controller
      *                  description="boolean to determine if we can rename the server through the api",
      *              ),
      *              @SWG\Property(
+     *                  property="internal_iface",
+     *                  type="string",
+     *                  description="Internal interface. e.g. eth1",
+     *              ),
+     *              @SWG\Property(
+     *                  property="external_iface",
+     *                  type="string",
+     *                  description="External interface. e.g. eth0",
+     *              ),
+     *              @SWG\Property(
+     *                  property="ssh_user",
+     *                  type="string",
+     *                  description="The ssh user Nanobox can use for ssh access to bootstrap the server. e.g. root",
+     *              ),
+     *              @SWG\Property(
      *                  property="ssh_auth_method",
      *                  type="string",
      *                  enum={"key","password"},
      *                  description="will either be key or password",
+     *              ),
+     *              @SWG\Property(
+     *                  property="ssh_key_method",
+     *                  type="string",
+     *                  enum={"reference","object"},
+     *                  description="will either be reference or object. Vhen set to 'reference', Nanobox will first create the SSH key in the user's provider account, then pass a reference to it when servers are created. When set to 'object', Nanobox will pass the actual public SSH key that should be installed on the server.",
+     *              ),
+     *              @SWG\Property(
+     *                  property="bootstrap_script",
+     *                  type="string",
+     *                  description="The script that should be used to bootstrap the server. e.g. https://s3.amazonaws.com/tools.nanobox.io/bootstrap/ubuntu.sh",
      *              ),
      *              @SWG\Property(
      *                  property="credential_fields",
@@ -160,7 +191,12 @@ class MetaController extends Controller
             'default_plan'      => ServerSize::first()->serverPlans->first()->code,
             'can_reboot'        => true,
             'can_rename'        => true,
+            'internal_iface'    => 'eth1',
+            'external_iface'    => 'eth0',
+            'ssh_user'          => 'root',
             'ssh_auth_method'   => 'password',
+            'ssh_key_method'    => 'reference',
+            'bootstrap_script'  => 'https://s3.amazonaws.com/tools.nanobox.io/bootstrap/ubuntu.sh',
             'credential_fields' => [
                 ['key' => 'hostname', 'label' => 'Proxmox server hostname'],
                 ['key' => 'port',     'label' => 'Proxmox server port'],
