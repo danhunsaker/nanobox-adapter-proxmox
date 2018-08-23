@@ -159,7 +159,7 @@ return [
         GrahamCampbell\Markdown\MarkdownServiceProvider::class,
         h1g\Proxmox\ProxmoxServiceProvider::class,
         Intouch\LaravelNewrelic\NewrelicServiceProvider::class,
-        Jlapp\Swaggervel\SwaggervelServiceProvider::class,
+        Appointer\Swaggervel\SwaggervelServiceProvider::class,
 
         /*
          * Application Service Providers...

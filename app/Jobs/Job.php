@@ -139,12 +139,22 @@ abstract class Job
             }
 
             if ( ! empty($self->server->key)) {
-                config(["remote.connections.{$self->server->unique_id}.password" => $self->server->password]);
+                try {
+                    config(["remote.connections.{$self->server->unique_id}.password" => $self->server->password]);
 
-                SSH::into($self->server->unique_id)->run([
-                    "( cat ~/.ssh/authorized_keys ; echo {$self->server->key->key} ) | sort -hu > ~/.ssh/authorized_keys",
-                    "  sudo -ksS <<<'{$self->server->password}' ( cat ~/.ssh/authorized_keys ; echo {$self->server->key->key} ) | sort -hu > ~/.ssh/authorized_keys",
-                ]);
+                    SSH::into($self->server->unique_id)->run([
+                        "( cat ~/.ssh/authorized_keys ; echo {$self->server->key->key} ) | sort -hu > ~/.ssh/authorized_keys",
+                        "  sudo -ksS <<<'{$self->server->password}' ( cat ~/.ssh/authorized_keys ; echo {$self->server->key->key} ) | sort -hu > ~/.ssh/authorized_keys",
+                    ]);
+                } catch (\RuntimeException $e) {
+                    // Similar story from a connection failure here - just means the key is already installed (and the password invalid).
+                    // But, if it's anything other than a connection attempt failure, we wanna pass it up the chain, as is.
+                    if ($e->getMessage() != 'Unable to connect to remote server.') {
+                        throw $e;
+                    }
+                }
+
+                $self->server->password = '';
             }
 
             $self->server->status = 'active';

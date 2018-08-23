@@ -11,8 +11,8 @@ class AddExtraServerData extends Migration
     public function up()
     {
         Schema::table('servers', function (Blueprint $table) {
-            $table->string('node');
-            $table->string('storage');
+            $table->string('node')->default('');
+            $table->string('storage')->default('');
             $table->integer('vmid')->unsigned()->default(0);
         });
     }

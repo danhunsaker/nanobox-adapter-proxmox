@@ -34,9 +34,9 @@ class KeyController extends Controller
      *          required=true,
      *          @SWG\Schema(
      *              type="object",
-     *              required={"name","key"},
+     *              required={"id","key"},
      *              @SWG\Property(
-     *                  property="name",
+     *                  property="id",
      *                  type="string",
      *                  description="the user-friendly name of the key",
      *              ),
@@ -74,7 +74,7 @@ class KeyController extends Controller
     public function store(Request $request)
     {
         $user = $request->user;
-        $name = $request->json('name');
+        $name = $request->json('id');
         $key  = $request->json('key');
         $code = Str::slug("{$user->hostname} {$user->port} {$user->username} {$user->realm} {$name}");
 
@@ -82,7 +82,7 @@ class KeyController extends Controller
         $key->user()->associate($user);
         $key->save();
 
-        return response()->json(['id' => $name], 201);
+        return response()->json(['id' => $code], 201);
     }
 
     /**

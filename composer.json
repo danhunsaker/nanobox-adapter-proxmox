@@ -6,19 +6,19 @@
     "type": "project",
     "require": {
         "php": "^5.6||^7.0",
-        "laravel/framework": "5.2.*",
+        "appointer/swaggervel": "^2.3",
         "barryvdh/laravel-cors": "^0.8.2",
         "doctrine/dbal": "^2.5",
         "fideloper/proxy": "^3.1",
-        "intouch/laravel-newrelic": "^2.1",
-        "jlapp/swaggervel": "dev-master",
-        "predis/predis": "^1.1",
-        "zzantares/proxmoxve": "^3.0",
-        "laravelcollective/remote": "^5.2.0",
-        "h1g/proxmox": "^1.0",
         "graham-campbell/markdown": "^7.1",
+        "h1g/proxmox": "^1.0",
+        "intouch/laravel-newrelic": "^2.1",
+        "laravel/framework": "5.2.*",
+        "laravelcollective/remote": "^5.2.0",
         "league/commonmark-extras": "^0.1.2",
-        "webuni/commonmark-table-extension": "^0.6.1"
+        "predis/predis": "^1.1",
+        "webuni/commonmark-table-extension": "^0.6.1",
+        "zzantares/proxmoxve": "^3.0"
     },
     "require-dev": {
         "fzaninotto/faker": "~1.4",

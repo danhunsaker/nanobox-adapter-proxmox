@@ -6,6 +6,7 @@ use App\Server;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Proxmox;
 
 class TrackVMCreate extends Job implements ShouldQueue
 {

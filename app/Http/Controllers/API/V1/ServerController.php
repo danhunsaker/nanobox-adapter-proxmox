@@ -133,6 +133,7 @@ class ServerController extends Controller
             'vmid'    => $server->vmid,
             'storage' => $storage,
             'archive' => "local:{$archive}",
+            'sshkeys' => $key->key,
             'unique'  => true,
         ]);
 

@@ -33,7 +33,7 @@
         </script>
         <!-- end Mixpanel -->
 
-        <link href="https://docs.nanobox.io/stylesheets/all-05822dcb.css" rel="stylesheet" type="text/css" />
+        <link href="https://docs.nanobox.io/stylesheets/all-64831a2d.css" rel="stylesheet" type="text/css" />
         <script src="https://docs.nanobox.io/javascripts/all-5b225ba7.js" type="text/javascript"></script>
 
         <!-- Mixpanel Doc feedback -->

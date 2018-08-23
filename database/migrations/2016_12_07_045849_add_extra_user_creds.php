@@ -11,11 +11,11 @@ class AddExtraUserCreds extends Migration
     public function up()
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->string('hostname');
+            $table->string('hostname')->default('');
             $table->integer('port')->default(8006);
-            $table->string('username');
-            $table->string('realm');
-            $table->string('password');
+            $table->string('username')->default('');
+            $table->string('realm')->default('');
+            $table->string('password')->default('');
 
             $table->unique(['hostname', 'username', 'realm']);
         });
