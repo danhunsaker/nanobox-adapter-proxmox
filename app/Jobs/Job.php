@@ -72,8 +72,8 @@ abstract class Job
             return false;
         }
 
-        if ($result['data']['status'] == 'stopped') {
-            if ($result['data']['exitstatus'] != 'OK' && ! $ignoreTaskErrors) {
+        if (array_get($result, 'data.status') == 'stopped') {
+            if (array_get($result, 'data.exitstatus') != 'OK' && ! $ignoreTaskErrors) {
                 $this->server->status = 'error';
                 $this->server->save();
             }

@@ -5,6 +5,7 @@ namespace App;
 use Crypt;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Contracts\Encryption\DecryptException;
 
 class Server extends Model
 {

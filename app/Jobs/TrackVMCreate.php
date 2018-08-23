@@ -32,6 +32,7 @@ class TrackVMCreate extends Job implements ShouldQueue
                 'cores'       => $this->server->serverSize->cpu,
                 'memory'      => $this->server->serverSize->ram,
                 'name'        => $this->server->name,
+                'sshkeys'     => is_null($this->server->key) ? null : $this->server->key->key,
                 'description' => "Created by Nanobox Adapter Proxmox\n\nSize: {$this->server->serverSize->code}\nOwner: {$this->server->user->username}@{$this->server->user->realm}",
                 'reboot'      => true,
                 'protection'  => true,
